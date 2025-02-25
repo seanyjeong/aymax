@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>급여 내역 조회</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        async function fetchSalaryData() {
+            const monthValue = document.getElementById('monthSelect').value;
+            if (!monthValue) {
+                alert("월을 선택해주세요.");
+                return;
+            }
+
+            const [year, month] = monthValue.split('-');
+            const response = await fetch(`https://supermax.kr/angetSalaryList?year=${year}&month=${month}`);
+            const data = await response.json();
+
+            const tableBody = document.getElementById('salaryTableBody');
+            tableBody.innerHTML = "";
+
+            let totalSalary = 0;
+
+            if (data.length > 0) {
+                data.forEach(record => {
+                    totalSalary += record.실지급액;
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${record.강사이름}</td><td>₩${record.실지급액.toLocaleString()}</td>`;
+                    tableBody.appendChild(row);
+                });
+            } else {
+                tableBody.innerHTML = `<tr><td colspan="2">확정된 급여가 없습니다.</td></tr>`;
+            }
+
+            document.getElementById('totalSalary').textContent = `총 지급 금액: ₩${totalSalary.toLocaleString()}`;
+        }
+
+     
+    async function downloadExcel() {
+        const year = new Date().getFullYear(); // 현재 연도 기준
+        const months = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')); // 01~12월
+
+        // ✅ 전체 강사 목록 가져오기
+        const teachersResponse = await fetch("https://supermax.kr/anteachers");
+        const teachers = await teachersResponse.json();
+
+        // ✅ 강사 ID별 은행 정보 및 주민번호 추가
+        for (let teacher of teachers) {
+            const accountResponse = await fetch(`https://supermax.kr/angetTeacherAccount?teacherId=${teacher.id}`);
+            const accountData = await accountResponse.json();
+
+            teacher.은행명 = accountData.은행명 || "정보 없음";
+            teacher.계좌번호 = accountData.계좌번호 || "정보 없음";
+
+            const detailResponse = await fetch(`https://supermax.kr/anteacherDetail?teacherId=${teacher.id}`);
+            const detailData = await detailResponse.json();
+            teacher.주민번호 = detailData.주민번호 || "정보 없음";
+        }
+
+        // ✅ 모든 월의 급여 내역 조회
+        let salaryData = {};
+        let monthlyTotals = {}; // 각 월별 총 지급 금액
+        months.forEach(month => monthlyTotals[`${year}-${month}`] = 0);
+
+        for (let month of months) {
+            const response = await fetch(`https://supermax.kr/angetSalaryList?year=${year}&month=${month}`);
+            const data = await response.json();
+
+            for (let record of data) {
+                if (!salaryData[record.강사_id]) {
+                    salaryData[record.강사_id] = { 총액: 0 };
+                }
+                salaryData[record.강사_id][`${year}-${month}`] = record.실지급액;
+                salaryData[record.강사_id].총액 += record.실지급액;
+
+                // ✅ 월별 총 지급 금액 누적
+                monthlyTotals[`${year}-${month}`] += record.실지급액;
+            }
+        }
+
+        // ✅ 엑셀 데이터 배열 생성 (헤더 포함)
+        const sheetData = [
+            ["강사이름", "주민번호", "은행명", "계좌번호", ...months.map(m => `${year}-${m}`), "총 지급 금액"]
+        ];
+
+        let totalAnnualSalary = 0; // 연간 총 지급액
+
+        // ✅ 각 강사의 데이터를 정리하여 행 추가
+        for (let teacher of teachers) {
+            const row = [
+                teacher.이름, 
+                teacher.주민번호, 
+                teacher.은행명, 
+                teacher.계좌번호
+            ];
+            
+            let totalSalary = 0;
+            months.forEach(month => {
+                const salary = salaryData[teacher.id]?.[`${year}-${month}`] || 0;
+                row.push(salary);
+                totalSalary += salary;
+            });
+
+            row.push(totalSalary);
+            totalAnnualSalary += totalSalary;
+            sheetData.push(row);
+        }
+
+        // ✅ 마지막 행: 각 월별 총 지급 금액 + 전체 총 지급 금액
+        sheetData.push([
+            "총 지급 금액", "", "", "", 
+            ...months.map(m => monthlyTotals[`${year}-${m}`]), 
+            totalAnnualSalary
+        ]);
+
+        // ✅ 엑셀 파일 생성
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(sheetData);
+        XLSX.utils.book_append_sheet(wb, ws, "급여내역");
+
+        // ✅ 파일 다운로드 (예: 급여내역_2024.xlsx)
+        const fileName = `급여내역_${year}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+    }
+
+    </script>
+</head>
+<body>
+
+    <h1>급여 내역 조회</h1>
+
+    <label for="monthSelect">월 선택:</label>
+    <input type="month" id="monthSelect">
+    <button onclick="fetchSalaryData()">조회</button>
+    <button onclick="downloadExcel()">엑셀 다운로드</button>
+
+    <h2>급여 확정된 강사 목록</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>강사 이름</th>
+                <th>실지급액</th>
+            </tr>
+        </thead>
+        <tbody id="salaryTableBody">
+            <tr><td colspan="2">조회된 급여 데이터 없음</td></tr>
+        </tbody>
+    </table>
+
+    <h3 id="totalSalary">총 지급 금액: ₩0</h3>
+    <footer style="margin-top: 20px; text-align: center; font-size: 12px; color: #666;">
+        &copy; 2025 안양맥스 강사 출근부 시스템 BY 정원장
+    </footer>
+</body>
+</html>

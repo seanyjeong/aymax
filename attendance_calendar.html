@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>안양맥스 강사 출근현황</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.min.css">
+    <style>
+        body { font-size: 16px; }
+        select, input, button { font-size: 18px; padding: 8px; margin: 10px; }
+        .container { text-align: center; }
+        .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 20px; }
+        .day-cell { border: 1px solid #ccc; text-align: center; padding: 10px; min-height: 50px; }
+        .legend { margin-top: 10px; }
+        .출근 { background-color: #D4EDDA; }
+        .지각 { background-color: #FFF3CD; }
+        .휴무 { background-color: #F8D7DA; }
+        .btn { margin-top: 10px; padding: 10px; font-size: 18px; }
+        .legend span { 
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin: 0 5px;
+            vertical-align: middle;
+        }
+        .month-title {
+            font-size: 1.8em;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .selection-box {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="center">안양맥스 강사 출근현황</h1>
+    <div class="container">
+        <div class="selection-box">
+            <select id="teacherSelect"></select>
+            <input type="month" id="monthSelect">
+            <button class="btn" onclick="fetchAttendance()">조회</button>
+        </div>
+    </div>
+    <div class="month-title center" id="monthTitle"></div>
+    <div class="calendar" id="calendar"></div>
+    <div class="legend center">
+        <span class="출근"></span> 출근
+        <span class="지각"></span> 지각
+        <span class="휴무"></span> 휴무
+    </div>
+    <div class="center">
+        <p id="workDaysCount">출근일수: 0일</p>
+        <input type="number" id="hourlyWage" placeholder="시급 입력"> 원
+        <button class="btn" onclick="calculateSalary()">급여 계산</button>
+        <p id="calculatedSalary">급여: 0원</p>
+    </div>
+
+    <script>
+        async function loadTeachers() {
+            try {
+                const response = await fetch('https://supermax.kr/anteachers');
+                const teachers = await response.json();
+                const select = document.getElementById('teacherSelect');
+
+                teachers.forEach(teacher => {
+                    const option = document.createElement('option');
+                    option.value = teacher.id;
+                    option.textContent = `${teacher.이름} (${teacher.직급})`;
+                    select.appendChild(option);
+                });
+
+                const now = new Date();
+                document.getElementById('monthSelect').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            } catch (error) {
+                console.error('교사 목록 로딩 실패:', error);
+                alert('교사 목록을 불러오는데 실패했습니다.');
+            }
+        }
+
+        async function fetchAttendance() {
+            try {
+                const teacherId = document.getElementById('teacherSelect').value;
+                const monthValue = document.getElementById('monthSelect').value;
+                if (!monthValue) {
+                    alert('월을 선택해주세요.');
+                    return;
+                }
+
+                const [year, month] = monthValue.split('-');
+                console.log(`📢 조회 요청: 강사ID=${teacherId}, year=${year}, month=${month}`);
+
+                const response = await fetch(`https://supermax.kr/anattendanceteacher?id=${teacherId}&year=${year}&month=${month}`);
+                if (!response.ok) {
+                    throw new Error('서버 응답 오류');
+                }
+                const records = await response.json();
+                console.log('📢 조회된 출근 기록:', records);
+                renderCalendar(year, month, records);
+            } catch (error) {
+                console.error('출근 기록 조회 실패:', error);
+                alert('출근 기록을 불러오는데 실패했습니다.');
+            }
+        }
+
+  function renderCalendar(year, month, records) {
+    const calendar = document.getElementById('calendar');
+    calendar.innerHTML = '';
+
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+    const startWeekDay = firstDay.getDay();
+
+    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+
+    // 🟢 요일 헤더 추가
+    dayNames.forEach(dayName => {
+        const dayHeader = document.createElement('div');
+        dayHeader.textContent = dayName;
+        dayHeader.style.fontWeight = 'bold';
+        dayHeader.classList.add('day-cell');
+        calendar.appendChild(dayHeader);
+    });
+
+    let 출근일수 = 0;
+
+    // 🟢 첫 주 시작 요일 맞추기 (빈 칸 추가)
+    for (let i = 0; i < startWeekDay; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.classList.add('day-cell');
+        calendar.appendChild(emptyCell);
+    }
+
+    // 🟢 날짜 셀 추가
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+        const cell = document.createElement('div');
+        cell.classList.add('day-cell');
+        cell.textContent = i;
+
+        // 🟢 현재 날짜 (YYYY-MM-DD 형식)
+        const currentDate = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+
+        // 🟢 DB에서 가져온 출근일과 비교 (KST 변환)
+        const record = records.find(r => r.출근일 === currentDate);
+
+        if (record) {
+            console.log(`✅ ${currentDate}의 기록:`, record);
+            if (Number(record.출근) === 1) {
+                cell.classList.add('출근');
+                출근일수++;
+            } else if (Number(record.지각) === 1) {
+                cell.classList.add('지각');
+                출근일수++;
+            } else if (Number(record.휴무) === 1) {
+                cell.classList.add('휴무');
+            }
+        }
+
+        calendar.appendChild(cell);
+    }
+
+    document.getElementById('workDaysCount').textContent = `출근일수: ${출근일수}일`;
+}
+
+
+        function calculateSalary() {
+            const hourlyWage = parseFloat(document.getElementById('hourlyWage').value);
+            const workDays = parseInt(document.getElementById('workDaysCount').textContent.replace(/[^0-9]/g, ''), 10);
+
+            if (isNaN(hourlyWage) || hourlyWage <= 0) {
+                alert('올바른 시급을 입력해주세요.');
+                return;
+            }
+
+            const salary = workDays * 2.5 * hourlyWage;
+            document.getElementById('calculatedSalary').textContent = `급여: ${salary.toLocaleString()}원`;
+        }
+
+        loadTeachers();
+    </script>
+        <footer style="margin-top: 20px; text-align: center; font-size: 12px; color: #666;">
+            &copy; 2025 안양맥스 강사 출근부 시스템 BY 정원장
+        </footer>
+</body>
+</html>
