@@ -107,18 +107,33 @@
     <button onclick="confirmSalary()">급여 확정</button>
     
     <script>
-    async function loadTeachers() {
+async function loadTeachers() {
+    console.log("📢 강사 목록 로드 시작");
+    
+    try {
         const response = await fetch('https://supermax.kr/anteachers');
         const teachers = await response.json();
+
+        console.log("✅ 강사 목록 응답:", teachers);  // 📢 API 응답 확인
+
         const teacherSelect = document.getElementById('teacher');
 
-        // ✅ 오류 해결: 강사 목록이 로드되면 기본 선택값 설정
+        // ✅ 강사 목록이 있으면 `<select>` 안에 옵션 추가
         teacherSelect.innerHTML = teachers.map(teacher => 
             `<option value="${teacher.id}">${teacher.이름} (${teacher.직급 || '강사'})</option>`
         ).join('');
 
-        updateTitle(); // ✅ 강사 목록이 로드된 후 제목 업데이트 실행
+        console.log("📢 강사 목록 로드 완료");
+        updateTitle();  // ✅ 강사 선택 후 제목 업데이트
+
+    } catch (error) {
+        console.error("❌ 강사 목록 불러오기 실패:", error);
     }
+}
+
+// ✅ DOM이 완전히 로드된 후 실행
+document.addEventListener("DOMContentLoaded", loadTeachers);
+
 
    async function updateTitle() {
         const teacherSelect = document.getElementById('teacher');
