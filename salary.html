@@ -52,16 +52,17 @@ async function downloadExcel() {
         let monthlyTotals = {};
         months.forEach(month => monthlyTotals[`${year}-${month}`] = 0);
 
+        // 각 월별 급여 데이터 수집
         for (let month of months) {
             const response = await fetch(`https://supermax.kr/angetSalaryList?year=${year}&month=${month}`);
             const data = await response.json();
 
             for (let record of data) {
-                if (!salaryData[record.강사_id]) {
-                    salaryData[record.강사_id] = { 총액: 0 };
+                const teacherId = record.강사_id;
+                if (!salaryData[teacherId]) {
+                    salaryData[teacherId] = {};
                 }
-                salaryData[record.강사_id][`${year}-${month}`] = record.실지급액;
-                salaryData[record.강사_id].총액 += record.실지급액;
+                salaryData[teacherId][`${year}-${month}`] = record.실지급액;
                 monthlyTotals[`${year}-${month}`] += record.실지급액;
             }
         }
@@ -74,7 +75,7 @@ async function downloadExcel() {
         let totalAnnualSalary = 0;
 
         // 각 강사의 데이터를 정리하여 행 추가
-        for (let teacher of teachers) {
+        teachers.forEach(teacher => {
             const row = [
                 teacher.이름,
                 teacher.주민번호,
@@ -84,22 +85,22 @@ async function downloadExcel() {
             
             let teacherTotalSalary = 0;
             months.forEach(month => {
-                const salary = salaryData[teacher.id]?.[`${year}-${month}`] || 0;
+                const monthKey = `${year}-${month}`;
+                const salary = salaryData[teacher.id]?.[monthKey] || 0;
                 row.push(salary);
                 teacherTotalSalary += salary;
             });
 
-            // 강사별 총액 추가
             row.push(teacherTotalSalary);
             totalAnnualSalary += teacherTotalSalary;
             sheetData.push(row);
-        }
+        });
 
         // 마지막 행: 월별 총액
         sheetData.push([
             "월별 총액", "", "", "",
             ...months.map(m => monthlyTotals[`${year}-${m}`]),
-            totalAnnualSalary // 전체 총액
+            totalAnnualSalary
         ]);
 
         // 엑셀 파일 생성 및 다운로드
