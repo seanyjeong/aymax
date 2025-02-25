@@ -268,9 +268,10 @@ async function calculateSalary() {
             }
         
 
-    async function confirmSalary() {
+   async function confirmSalary() {
     const teacherId = document.getElementById('teacher').value;
     const monthValue = document.getElementById('month').value;
+
     if (!teacherId || !monthValue) {
         alert("강사 및 월을 선택해주세요.");
         return;
@@ -278,15 +279,21 @@ async function calculateSalary() {
 
     const [year, month] = monthValue.split('-');
     const salaryType = document.getElementById('salaryType').value;
-    const hourlyWage = parseFloat(document.getElementById('hourlyRate').value) || null;
-    const dailyWage = parseFloat(document.getElementById('dailyRate').value) || null;
-    const monthlyWage = parseFloat(document.getElementById('monthlySalary').value) || null;
+    const hourlyWage = parseFloat(document.getElementById('hourlyRate').value) || 0;
+    const dailyWage = parseFloat(document.getElementById('dailyRate').value) || 0;
+    const monthlyWage = parseFloat(document.getElementById('monthlySalary').value) || 0;
+    
     const salaryAmount = Math.floor(parseFloat(document.getElementById('netSalary').textContent.replace(/₩|,/g, '')) / 10) * 10;  // 10원 절삭
 
-    let totalHours = salaryType === "hourly" ? parseFloat(document.getElementById('totalHours').textContent) || 0 : null;
-    let totalDays = salaryType === "daily" ? parseInt(document.getElementById('attendanceDays').textContent) || 0 : null;
+    let totalHours = salaryType === "hourly" ? parseFloat(document.getElementById('totalHours').textContent) || 0 : 0;
+    let totalDays = salaryType === "daily" ? parseInt(document.getElementById('attendanceDays').textContent) || 0 : 0;
 
-    const salaryData = { year, month, teacherId, salaryAmount, salaryType, totalHours, totalDays, hourlyWage, dailyWage, monthlyWage };
+    const salaryData = { 
+        year, month, teacherId, salaryAmount, salaryType, totalHours, totalDays, hourlyWage, dailyWage, monthlyWage 
+    };
+
+    // Log the data being sent to the server for debugging
+    console.log('전송되는 급여 데이터:', salaryData);
 
     const response = await fetch('https://supermax.kr/anconfirmSalary', {
         method: 'POST',
@@ -300,6 +307,7 @@ async function calculateSalary() {
         alert("❌ 급여 확정 중 오류 발생!");
     }
 }
+
 
 
         async function downloadPDF() {
