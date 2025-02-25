@@ -166,7 +166,7 @@ async function loadSalaryData() {
     document.getElementById('dailyRate').value = salaryData.일급 || '';
     document.getElementById('monthlySalary').value = salaryData.월급 || '';
 
-    // 급여 방식에 따른 입력 칸 설정
+    // ✅ 급여 방식에 따른 입력 칸 표시 설정
     if (salaryData.급여방식 === 'hourly') {
         document.getElementById('hourlyRate').style.display = 'block';
         document.getElementById('dailyRate').style.display = 'none';
@@ -180,6 +180,9 @@ async function loadSalaryData() {
         document.getElementById('dailyRate').style.display = 'none';
         document.getElementById('monthlySalary').style.display = 'block';
     }
+
+    // ✅ 급여 데이터를 불러온 후 자동으로 급여 계산 실행
+    calculateSalary();
 }
 
 
