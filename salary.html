@@ -43,19 +43,21 @@ async function downloadExcel() {
         const year = new Date().getFullYear();
         const months = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
 
-        // 전체 강사 목록 가져오기
+        // ✅ 전체 강사 목록 가져오기
         const teachersResponse = await fetch("https://supermax.kr/anteachers");
         const teachers = await teachersResponse.json();
+        console.log("📢 강사 목록:", teachers);
 
-        // 모든 월의 급여 내역 조회
-        let salaryData = {};
-        let monthlyTotals = {};
+        // ✅ 모든 월의 급여 내역 조회
+        let salaryData = {};  // { 강사_id: { "YYYY-MM": 실지급액 } }
+        let monthlyTotals = {};  // { "YYYY-MM": 총액 }
         months.forEach(month => monthlyTotals[`${year}-${month}`] = 0);
 
-        // 각 월별 급여 데이터 수집
+        // ✅ 각 월별 급여 데이터 수집
         for (let month of months) {
             const response = await fetch(`https://supermax.kr/angetSalaryList?year=${year}&month=${month}`);
             const data = await response.json();
+            console.log(`📢 ${year}-${month} 급여 데이터:`, data);
 
             for (let record of data) {
                 const teacherId = record.강사_id;
@@ -67,20 +69,24 @@ async function downloadExcel() {
             }
         }
 
-        // 엑셀 데이터 배열 생성 (헤더 포함)
+        // ✅ 강사별 월별 급여 내역 확인
+        console.log("📌 수집된 급여 데이터 (salaryData):", salaryData);
+        console.log("📌 월별 총액 (monthlyTotals):", monthlyTotals);
+
+        // ✅ 엑셀 데이터 배열 생성 (헤더 포함)
         const sheetData = [
             ["강사이름", "주민번호", "은행명", "계좌번호", ...months.map(m => `${year}-${m}`), "강사별 총액"]
         ];
 
         let totalAnnualSalary = 0;
 
-        // 각 강사의 데이터를 정리하여 행 추가
+        // ✅ 각 강사의 데이터를 정리하여 행 추가
         teachers.forEach(teacher => {
             const row = [
                 teacher.이름,
-                teacher.주민번호,
-                teacher.은행명,
-                teacher.계좌번호
+                teacher.주민번호 || "",
+                teacher.은행명 || "",
+                teacher.계좌번호 || ""
             ];
             
             let teacherTotalSalary = 0;
@@ -96,18 +102,20 @@ async function downloadExcel() {
             sheetData.push(row);
         });
 
-        // 마지막 행: 월별 총액
+        // ✅ 마지막 행: 월별 총액
         sheetData.push([
             "월별 총액", "", "", "",
             ...months.map(m => monthlyTotals[`${year}-${m}`]),
             totalAnnualSalary
         ]);
 
-        // 엑셀 파일 생성 및 다운로드
+        console.log("📢 최종 엑셀 데이터 (sheetData):", sheetData);
+
+        // ✅ 엑셀 파일 생성 및 다운로드
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet(sheetData);
 
-        // 숫자 셀 형식 지정 (천 단위 구분기호 추가)
+        // ✅ 숫자 셀 형식 지정 (천 단위 구분기호 추가)
         const range = XLSX.utils.decode_range(ws['!ref']);
         for (let R = 1; R <= range.e.r; R++) {
             for (let C = 4; C <= range.e.c; C++) {
@@ -122,10 +130,11 @@ async function downloadExcel() {
         XLSX.writeFile(wb, `급여내역_${year}.xlsx`);
 
     } catch (error) {
-        console.error("엑셀 다운로드 중 오류 발생:", error);
+        console.error("❌ 엑셀 다운로드 중 오류 발생:", error);
         alert("엑셀 파일 생성 중 오류가 발생했습니다.");
     }
 }
+
     </script>
 </head>
 <body>
