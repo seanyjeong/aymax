@@ -48,6 +48,13 @@ async function downloadExcel() {
         const teachers = await teachersResponse.json();
         console.log("📢 강사 목록:", teachers);
 
+        // ✅ 강사 이름 → 강사 ID 매핑 생성
+        const teacherMap = {};
+        teachers.forEach(teacher => {
+            teacherMap[teacher.이름] = teacher.id;
+        });
+        console.log("📌 강사 이름 → ID 매핑:", teacherMap);
+
         // ✅ 모든 월의 급여 내역 조회
         let salaryData = {};  // { 강사_id: { "YYYY-MM": 실지급액 } }
         let monthlyTotals = {};  // { "YYYY-MM": 총액 }
@@ -60,7 +67,12 @@ async function downloadExcel() {
             console.log(`📢 ${year}-${month} 급여 데이터:`, data);
 
             for (let record of data) {
-                const teacherId = record.강사_id;
+                const teacherId = teacherMap[record.강사이름];  // 강사이름으로 ID 찾기
+                if (!teacherId) {
+                    console.warn(`⚠️ 강사 ID를 찾을 수 없음: ${record.강사이름}`);
+                    continue;  // 강사 ID가 없으면 스킵
+                }
+
                 if (!salaryData[teacherId]) {
                     salaryData[teacherId] = {};
                 }
