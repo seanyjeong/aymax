@@ -59,15 +59,12 @@ async function downloadExcel() {
         // ✅ 전체 강사 목록 가져오기
         const teachersResponse = await fetch("https://supermax.kr/anteachers");
         const teachers = await teachersResponse.json();
-        console.log("📢 강사 목록:", teachers);
 
         // ✅ 강사 이름 → 강사 ID 매핑
         const teacherMap = {};
         teachers.forEach(teacher => {
             teacherMap[teacher.이름] = teacher.id;
         });
-
-        console.log("📌 강사 이름 → ID 매핑:", teacherMap);
 
         // ✅ 모든 월의 급여 내역 저장
         let salaryData = {};
@@ -82,14 +79,10 @@ async function downloadExcel() {
         for (let month of months) {
             const response = await fetch(`https://supermax.kr/angetSalaryList?year=${year}&month=${month}`);
             const data = await response.json();
-            console.log(`📢 ${year}-${month} 급여 데이터:`, data);
 
             data.forEach(record => {
-                const teacherId = teacherMap[record.강사이름]; // 강사이름으로 ID 찾기
-                if (!teacherId) {
-                    console.warn(`⚠️ 강사 ID를 찾을 수 없음: ${record.강사이름}`);
-                    return;
-                }
+                const teacherId = teacherMap[record.강사이름];
+                if (!teacherId) return;
 
                 if (!salaryData[teacherId]) {
                     salaryData[teacherId] = {};
@@ -108,14 +101,12 @@ async function downloadExcel() {
             });
         }
 
-        // ✅ 강사별 월별 급여 내역 확인
-        console.log("📌 수집된 급여 데이터 (salaryData):", salaryData);
-        console.log("📌 월별 총액 (monthlyTotals):", monthlyTotals);
+        // ✅ 엑셀 헤더 (월별 병합 행 + 서브헤더)
+        const headerRow1 = ["강사이름", "주민번호", "은행명", "계좌번호", ...months.flatMap(m => [`${year}-${m}`, "", ""]), "강사별 총액"];
+        const headerRow2 = ["", "", "", "", ...months.flatMap(() => ["총급여", "세금", "실지급액"]), ""];
 
-        // ✅ 엑셀 데이터 배열 생성 (헤더 포함)
-        const sheetData = [
-            ["강사이름", "주민번호", "은행명", "계좌번호", ...months.flatMap(m => [`${year}-${m} (총급여)`, `${year}-${m} (세금)`, `${year}-${m} (실지급액)`]), "강사별 총액"]
-        ];
+        // ✅ 엑셀 데이터 배열 생성
+        const sheetData = [headerRow1, headerRow2];
 
         let totalAnnualSalary = { 총급여: 0, 세금금액: 0, 실지급액: 0 };
 
@@ -155,19 +146,26 @@ async function downloadExcel() {
             totalAnnualSalary.총급여, totalAnnualSalary.세금금액, totalAnnualSalary.실지급액
         ]);
 
-        console.log("📢 최종 엑셀 데이터 (sheetData):", sheetData);
-
         // ✅ 엑셀 파일 생성 및 다운로드
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet(sheetData);
 
-        // ✅ 숫자 셀 형식 지정 (천 단위 구분기호 추가)
-        const range = XLSX.utils.decode_range(ws['!ref']);
-        for (let R = 1; R <= range.e.r; R++) {
-            for (let C = 4; C <= range.e.c; C++) {
-                const cell = ws[XLSX.utils.encode_cell({r: R, c: C})];
-                if (cell && typeof cell.v === 'number') {
-                    cell.z = '#,##0';
+        // ✅ 셀 병합 설정
+        ws["!merges"] = months.map((_, i) => ({
+            s: { r: 0, c: 4 + i * 3 }, // 시작 셀 (첫 번째 행의 4+i*3 번째 열)
+            e: { r: 0, c: 6 + i * 3 }  // 끝 셀 (첫 번째 행의 6+i*3 번째 열)
+        }));
+
+        // ✅ 월별 배경색 설정
+        const monthColors = ["#FFDDC1", "#FFABAB", "#FFC3A0", "#D5AAFF", "#85E3FF", "#B9FBC0"];
+        for (let i = 0; i < months.length; i++) {
+            const colStart = 4 + i * 3;
+            const color = monthColors[i % monthColors.length];
+
+            for (let j = 0; j < 2; j++) {
+                const cell = ws[XLSX.utils.encode_cell({ r: j, c: colStart })];
+                if (cell) {
+                    cell.s = { fill: { fgColor: { rgb: color.replace("#", "") } } };
                 }
             }
         }
