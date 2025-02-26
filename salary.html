@@ -125,14 +125,22 @@ async function downloadExcel() {
                 const monthKey = `${year}-${month}`;
                 const data = salaryData[teacher.id]?.[monthKey] || { 총급여: 0, 세금금액: 0, 실지급액: 0 };
 
-                row.push(data.총급여, data.세금금액, data.실지급액);
+                row.push(
+                    data.총급여.toLocaleString(), 
+                    data.세금금액.toLocaleString(), 
+                    data.실지급액.toLocaleString()
+                );
 
                 teacherTotal.총급여 += data.총급여;
                 teacherTotal.세금금액 += data.세금금액;
                 teacherTotal.실지급액 += data.실지급액;
             });
 
-            row.push(teacherTotal.총급여, teacherTotal.세금금액, teacherTotal.실지급액);
+            row.push(
+                teacherTotal.총급여.toLocaleString(), 
+                teacherTotal.세금금액.toLocaleString(), 
+                teacherTotal.실지급액.toLocaleString()
+            );
             totalAnnualSalary.총급여 += teacherTotal.총급여;
             totalAnnualSalary.세금금액 += teacherTotal.세금금액;
             totalAnnualSalary.실지급액 += teacherTotal.실지급액;
@@ -142,8 +150,14 @@ async function downloadExcel() {
         // ✅ 마지막 행: 월별 총액
         sheetData.push([
             "월별 총액", "", "", "",
-            ...months.flatMap(m => [monthlyTotals[`${year}-${m}`].총급여, monthlyTotals[`${year}-${m}`].세금금액, monthlyTotals[`${year}-${m}`].실지급액]),
-            totalAnnualSalary.총급여, totalAnnualSalary.세금금액, totalAnnualSalary.실지급액
+            ...months.flatMap(m => [
+                monthlyTotals[`${year}-${m}`].총급여.toLocaleString(),
+                monthlyTotals[`${year}-${m}`].세금금액.toLocaleString(),
+                monthlyTotals[`${year}-${m}`].실지급액.toLocaleString()
+            ]),
+            totalAnnualSalary.총급여.toLocaleString(), 
+            totalAnnualSalary.세금금액.toLocaleString(), 
+            totalAnnualSalary.실지급액.toLocaleString()
         ]);
 
         // ✅ 엑셀 파일 생성 및 다운로드
@@ -157,7 +171,7 @@ async function downloadExcel() {
         }));
 
         // ✅ 월별 배경색 설정
-        const monthColors = ["#FFDDC1", "#FFABAB", "#FFC3A0", "#D5AAFF", "#85E3FF", "#B9FBC0"];
+        const monthColors = ["FFDDC1", "FFABAB", "FFC3A0", "D5AAFF", "85E3FF", "B9FBC0"];
         for (let i = 0; i < months.length; i++) {
             const colStart = 4 + i * 3;
             const color = monthColors[i % monthColors.length];
@@ -165,7 +179,22 @@ async function downloadExcel() {
             for (let j = 0; j < 2; j++) {
                 const cell = ws[XLSX.utils.encode_cell({ r: j, c: colStart })];
                 if (cell) {
-                    cell.s = { fill: { fgColor: { rgb: color.replace("#", "") } } };
+                    cell.s = {
+                        fill: { fgColor: { rgb: color } },
+                        alignment: { horizontal: "center", vertical: "center" }
+                    };
+                }
+            }
+        }
+
+        // ✅ 모든 셀 가운데 정렬
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        for (let R = 0; R <= range.e.r; R++) {
+            for (let C = 0; C <= range.e.c; C++) {
+                const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+                if (cell) {
+                    cell.s = cell.s || {};
+                    cell.s.alignment = { horizontal: "center", vertical: "center" };
                 }
             }
         }
@@ -178,6 +207,7 @@ async function downloadExcel() {
         alert("엑셀 파일 생성 중 오류가 발생했습니다.");
     }
 }
+
 
     </script>
 </head>
