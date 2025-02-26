@@ -283,10 +283,12 @@ async function confirmSalary() {
     const monthlyWage = parseFloat(document.getElementById('monthlySalary').value) || 0;
     
     let salaryAmount = Math.floor(parseFloat(document.getElementById('netSalary').textContent.replace(/₩|,/g, '')) / 10) * 10;
+    let taxAmount = Math.floor(parseFloat(document.getElementById('taxAmount').textContent.replace(/₩|,/g, '')) / 10) * 10;
     const applyTax = document.getElementById('applyTax').checked;
 
     const salaryData = { 
-        year, month, teacherId, teacherName, salaryAmount, salaryType, totalHours, totalDays, hourlyWage, dailyWage, monthlyWage, applyTax 
+        year, month, teacherId, teacherName, salaryAmount, taxAmount, salaryType, 
+        totalHours, totalDays, hourlyWage, dailyWage, monthlyWage, applyTax 
     };
 
     console.log("📤 서버로 보내는 데이터:", salaryData);
