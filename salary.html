@@ -6,6 +6,7 @@
     <title>급여 내역 조회</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
     <script>
         async function fetchSalaryData() {
             const monthValue = document.getElementById('monthSelect').value;
@@ -22,19 +23,31 @@
             tableBody.innerHTML = "";
 
             let totalSalary = 0;
+            let totalTax = 0;
+            let totalNetSalary = 0;
 
             if (data.length > 0) {
                 data.forEach(record => {
-                    totalSalary += record.실지급액;
+                    totalSalary += record.총급여;
+                    totalTax += record.세금금액;
+                    totalNetSalary += record.실지급액;
+
                     const row = document.createElement('tr');
-                    row.innerHTML = `<td>${record.강사이름}</td><td>₩${record.실지급액.toLocaleString()}</td>`;
+                    row.innerHTML = `
+                        <td>${record.강사이름}</td>
+                        <td>₩${record.총급여.toLocaleString()}</td>
+                        <td>₩${record.세금금액.toLocaleString()}</td>
+                        <td>₩${record.실지급액.toLocaleString()}</td>
+                    `;
                     tableBody.appendChild(row);
                 });
             } else {
-                tableBody.innerHTML = `<tr><td colspan="2">확정된 급여가 없습니다.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="4">확정된 급여가 없습니다.</td></tr>`;
             }
 
             document.getElementById('totalSalary').textContent = `총 지급 금액: ₩${totalSalary.toLocaleString()}`;
+            document.getElementById('totalTax').textContent = `총 세금: ₩${totalTax.toLocaleString()}`;
+            document.getElementById('totalNetSalary').textContent = `총 실지급액: ₩${totalNetSalary.toLocaleString()}`;
         }
 
      
@@ -48,17 +61,22 @@ async function downloadExcel() {
         const teachers = await teachersResponse.json();
         console.log("📢 강사 목록:", teachers);
 
-        // ✅ 강사 이름 → 강사 ID 매핑 생성
+        // ✅ 강사 이름 → 강사 ID 매핑
         const teacherMap = {};
         teachers.forEach(teacher => {
             teacherMap[teacher.이름] = teacher.id;
         });
+
         console.log("📌 강사 이름 → ID 매핑:", teacherMap);
 
-        // ✅ 모든 월의 급여 내역 조회
-        let salaryData = {};  // { 강사_id: { "YYYY-MM": 실지급액 } }
-        let monthlyTotals = {};  // { "YYYY-MM": 총액 }
-        months.forEach(month => monthlyTotals[`${year}-${month}`] = 0);
+        // ✅ 모든 월의 급여 내역 저장
+        let salaryData = {};
+        let monthlyTotals = {};
+
+        // ✅ 초기화
+        months.forEach(month => {
+            monthlyTotals[`${year}-${month}`] = { 총급여: 0, 세금금액: 0, 실지급액: 0 };
+        });
 
         // ✅ 각 월별 급여 데이터 수집
         for (let month of months) {
@@ -66,19 +84,28 @@ async function downloadExcel() {
             const data = await response.json();
             console.log(`📢 ${year}-${month} 급여 데이터:`, data);
 
-            for (let record of data) {
-                const teacherId = teacherMap[record.강사이름];  // 강사이름으로 ID 찾기
+            data.forEach(record => {
+                const teacherId = teacherMap[record.강사이름]; // 강사이름으로 ID 찾기
                 if (!teacherId) {
                     console.warn(`⚠️ 강사 ID를 찾을 수 없음: ${record.강사이름}`);
-                    continue;  // 강사 ID가 없으면 스킵
+                    return;
                 }
 
                 if (!salaryData[teacherId]) {
                     salaryData[teacherId] = {};
                 }
-                salaryData[teacherId][`${year}-${month}`] = record.실지급액;
-                monthlyTotals[`${year}-${month}`] += record.실지급액;
-            }
+
+                salaryData[teacherId][`${year}-${month}`] = {
+                    총급여: record.총급여,
+                    세금금액: record.세금금액,
+                    실지급액: record.실지급액
+                };
+
+                // ✅ 월별 합계 누적
+                monthlyTotals[`${year}-${month}`].총급여 += record.총급여;
+                monthlyTotals[`${year}-${month}`].세금금액 += record.세금금액;
+                monthlyTotals[`${year}-${month}`].실지급액 += record.실지급액;
+            });
         }
 
         // ✅ 강사별 월별 급여 내역 확인
@@ -87,10 +114,10 @@ async function downloadExcel() {
 
         // ✅ 엑셀 데이터 배열 생성 (헤더 포함)
         const sheetData = [
-            ["강사이름", "주민번호", "은행명", "계좌번호", ...months.map(m => `${year}-${m}`), "강사별 총액"]
+            ["강사이름", "주민번호", "은행명", "계좌번호", ...months.flatMap(m => [`${year}-${m} (총급여)`, `${year}-${m} (세금)`, `${year}-${m} (실지급액)`]), "강사별 총액"]
         ];
 
-        let totalAnnualSalary = 0;
+        let totalAnnualSalary = { 총급여: 0, 세금금액: 0, 실지급액: 0 };
 
         // ✅ 각 강사의 데이터를 정리하여 행 추가
         teachers.forEach(teacher => {
@@ -100,25 +127,32 @@ async function downloadExcel() {
                 teacher.은행명 || "",
                 teacher.계좌번호 || ""
             ];
-            
-            let teacherTotalSalary = 0;
+
+            let teacherTotal = { 총급여: 0, 세금금액: 0, 실지급액: 0 };
+
             months.forEach(month => {
                 const monthKey = `${year}-${month}`;
-                const salary = salaryData[teacher.id]?.[monthKey] || 0;
-                row.push(salary);
-                teacherTotalSalary += salary;
+                const data = salaryData[teacher.id]?.[monthKey] || { 총급여: 0, 세금금액: 0, 실지급액: 0 };
+
+                row.push(data.총급여, data.세금금액, data.실지급액);
+
+                teacherTotal.총급여 += data.총급여;
+                teacherTotal.세금금액 += data.세금금액;
+                teacherTotal.실지급액 += data.실지급액;
             });
 
-            row.push(teacherTotalSalary);
-            totalAnnualSalary += teacherTotalSalary;
+            row.push(teacherTotal.총급여, teacherTotal.세금금액, teacherTotal.실지급액);
+            totalAnnualSalary.총급여 += teacherTotal.총급여;
+            totalAnnualSalary.세금금액 += teacherTotal.세금금액;
+            totalAnnualSalary.실지급액 += teacherTotal.실지급액;
             sheetData.push(row);
         });
 
         // ✅ 마지막 행: 월별 총액
         sheetData.push([
             "월별 총액", "", "", "",
-            ...months.map(m => monthlyTotals[`${year}-${m}`]),
-            totalAnnualSalary
+            ...months.flatMap(m => [monthlyTotals[`${year}-${m}`].총급여, monthlyTotals[`${year}-${m}`].세금금액, monthlyTotals[`${year}-${m}`].실지급액]),
+            totalAnnualSalary.총급여, totalAnnualSalary.세금금액, totalAnnualSalary.실지급액
         ]);
 
         console.log("📢 최종 엑셀 데이터 (sheetData):", sheetData);
@@ -151,7 +185,7 @@ async function downloadExcel() {
 </head>
 <body>
 
-    <h1>급여 내역 조회</h1>
+   <h1>급여 내역 조회</h1>
 
     <label for="monthSelect">월 선택:</label>
     <input type="month" id="monthSelect">
@@ -163,15 +197,20 @@ async function downloadExcel() {
         <thead>
             <tr>
                 <th>강사 이름</th>
+                <th>총급여</th>
+                <th>세금 (3.3%)</th>
                 <th>실지급액</th>
             </tr>
         </thead>
         <tbody id="salaryTableBody">
-            <tr><td colspan="2">조회된 급여 데이터 없음</td></tr>
+            <tr><td colspan="4">조회된 급여 데이터 없음</td></tr>
         </tbody>
     </table>
 
     <h3 id="totalSalary">총 지급 금액: ₩0</h3>
+    <h3 id="totalTax">총 세금: ₩0</h3>
+    <h3 id="totalNetSalary">총 실지급액: ₩0</h3>
+
     <footer style="margin-top: 20px; text-align: center; font-size: 12px; color: #666;">
         &copy; 2025 안양맥스 강사 출근부 시스템 BY 정원장
     </footer>
