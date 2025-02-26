@@ -6,151 +6,151 @@
     <title>강사 관리</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.min.css">
     <style>
-        /* 테이블 기본 스타일 */
-        table {
-            width: 100%;
-            margin-bottom: 20px;
-            border-collapse: collapse;
-            background-color: white;
-        }
-        
-        th, td {
-            text-align: center;
-            padding: 12px 8px;
-            border: 1px solid #ddd;
-        }
+/* 테이블 기본 스타일 */
+table {
+    width: 100%;
+    margin-bottom: 20px;
+    border-collapse: collapse;
+    background-color: white;
+}
 
-        th {
-            background-color: #f4f4f4;
-            color: #333;
-        }
+th, td {
+    text-align: center;
+    padding: 12px 8px;
+    border: 1px solid #ddd;
+}
 
-        /* 테이블 행 스타일 */
-        tbody tr:nth-child(odd) {
-            background-color: #ffffff;
-        }
+th {
+    background-color: #f4f4f4;
+    color: #333;
+}
 
-        tbody tr:nth-child(even) {
-            background-color: #f8f9fa;
-        }
+/* 테이블 행 스타일 */
+tbody tr:nth-child(odd) {
+    background-color: #ffffff;
+}
 
-        tbody tr:hover {
-            background-color: #f5f5f5;
-        }
+tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
 
-        /* 버튼 공통 스타일 */
-        button {
-            margin: 5px;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: bold;
-            min-width: 80px;
-        }
+tbody tr:hover {
+    background-color: #f5f5f5;
+}
 
-        /* 수정/삭제 버튼 컨테이너 */
-        .action-buttons {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
+/* 버튼 공통 스타일 */
+button {
+    margin: 5px;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    min-width: 80px;
+}
 
-        /* 수정 버튼 */
-        .edit-btn {
-            background-color: #2196F3;
-            color: white;
-            border: none;
-        }
+/* 수정/삭제 버튼 컨테이너 */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
 
-        .edit-btn:hover {
-            background-color: #0b7dda;
-        }
+/* 수정 버튼 */
+.edit-btn {
+    background-color: #2196F3 !important;
+    color: white !important;
+    border: none;
+}
 
-        /* 삭제 버튼 */
-        .delete-btn {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-        }
+.edit-btn:hover {
+    background-color: #0b7dda !important;
+}
 
-        .delete-btn:hover {
-            background-color: #c82333;
-        }
+/* 삭제 버튼 */
+.delete-btn {
+    background-color: #dc3545 !important;
+    color: white !important;
+    border: none;
+}
 
-        /* 폼 버튼 */
-        #submitBtn {
-            background-color: #28a745;
-            color: white;
-            border: none;
-        }
+.delete-btn:hover {
+    background-color: #c82333 !important;
+}
 
-        #submitBtn:hover {
-            background-color: #218838;
-        }
+/* 폼 버튼 */
+#submitBtn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+}
 
-        #cancelBtn {
-            background-color: #6c757d;
-            color: white;
-            border: none;
-        }
+#submitBtn:hover {
+    background-color: #218838;
+}
 
-        #cancelBtn:hover {
-            background-color: #5a6268;
-        }
+#cancelBtn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+}
 
-        /* 모바일 반응형 스타일 */
-        @media screen and (max-width: 768px) {
-            /* 테이블 스크롤 가능하게 만들기 */
-            .table-container {
-                overflow-x: auto;
-                margin-bottom: 20px;
-            }
+#cancelBtn:hover {
+    background-color: #5a6268;
+}
 
-            table {
-                min-width: 800px; /* 최소 너비 설정 */
-            }
+/* 모바일 반응형 스타일 */
+@media screen and (max-width: 768px) {
+    /* 테이블 스크롤 가능하게 만들기 */
+    .table-container {
+        overflow-x: auto;
+        margin-bottom: 20px;
+    }
 
-            /* 버튼 크기 조정 */
-            button {
-                padding: 10px 15px;
-                margin: 3px;
-                font-size: 14px;
-            }
+    table {
+        min-width: 800px; /* 최소 너비 설정 */
+    }
 
-            /* 폼 레이아웃 조정 */
-            form {
-                padding: 15px;
-            }
+    /* 버튼 크기 조정 */
+    button {
+        padding: 10px 15px;
+        margin: 3px;
+        font-size: 14px;
+    }
 
-            input, select {
-                width: 100%;
-                margin-bottom: 10px;
-            }
-        }
+    /* 폼 레이아웃 조정 */
+    form {
+        padding: 15px;
+    }
 
-        /* 폼 스타일 */
-        form {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
+    input, select {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+}
 
-        label {
-            display: block;
-            margin-bottom: 15px;
-        }
+/* 폼 스타일 */
+form {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
 
-        input, select {
-            margin-top: 5px;
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-            width: 100%;
-        }
+label {
+    display: block;
+    margin-bottom: 15px;
+}
+
+input, select {
+    margin-top: 5px;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    width: 100%;
+}
     </style>
 </head>
 <body>
