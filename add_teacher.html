@@ -5,86 +5,142 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>강사 관리</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.min.css">
-       <style>
+    <style>
+        /* 테이블 기본 스타일 */
         table {
             width: 100%;
             margin-bottom: 20px;
             border-collapse: collapse;
+            background-color: white;
         }
         
         th, td {
             text-align: center;
             padding: 12px 8px;
+            border: 1px solid #ddd;
         }
 
-        /* 테이블 스트라이프 효과 */
+        th {
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        /* 테이블 행 스타일 */
+        tbody tr:nth-child(odd) {
+            background-color: #ffffff;
+        }
+
         tbody tr:nth-child(even) {
             background-color: #f8f9fa;
         }
 
-        /* 버튼 스타일 */
+        tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        /* 버튼 공통 스타일 */
         button {
             margin: 5px;
             padding: 8px 16px;
             border-radius: 4px;
             cursor: pointer;
             transition: all 0.3s ease;
+            font-weight: bold;
+            min-width: 80px;
+        }
+
+        /* 수정/삭제 버튼 컨테이너 */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
         }
 
         /* 수정 버튼 */
-        button.edit-btn {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-        }
-
-        button.edit-btn:hover {
-            background-color: #45a049;
-        }
-
-        /* 삭제 버튼 */
-        button.delete-btn {
-            background-color: #f44336;
-            color: white;
-            border: none;
-        }
-
-        button.delete-btn:hover {
-            background-color: #da190b;
-        }
-
-        /* 추가/수정 폼 버튼 */
-        #submitBtn {
+        .edit-btn {
             background-color: #2196F3;
             color: white;
             border: none;
-            padding: 10px 20px;
         }
 
-        #submitBtn:hover {
+        .edit-btn:hover {
             background-color: #0b7dda;
         }
 
-        #cancelBtn {
-            background-color: #808080;
+        /* 삭제 버튼 */
+        .delete-btn {
+            background-color: #dc3545;
             color: white;
             border: none;
-            padding: 10px 20px;
+        }
+
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+
+        /* 폼 버튼 */
+        #submitBtn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+        }
+
+        #submitBtn:hover {
+            background-color: #218838;
+        }
+
+        #cancelBtn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
         }
 
         #cancelBtn:hover {
-            background-color: #666666;
+            background-color: #5a6268;
         }
 
-        /* 폼 스타일 개선 */
+        /* 모바일 반응형 스타일 */
+        @media screen and (max-width: 768px) {
+            /* 테이블 스크롤 가능하게 만들기 */
+            .table-container {
+                overflow-x: auto;
+                margin-bottom: 20px;
+            }
+
+            table {
+                min-width: 800px; /* 최소 너비 설정 */
+            }
+
+            /* 버튼 크기 조정 */
+            button {
+                padding: 10px 15px;
+                margin: 3px;
+                font-size: 14px;
+            }
+
+            /* 폼 레이아웃 조정 */
+            form {
+                padding: 15px;
+            }
+
+            input, select {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+
+        /* 폼 스타일 */
         form {
             background-color: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         label {
+            display: block;
             margin-bottom: 15px;
         }
 
@@ -93,38 +149,14 @@
             padding: 8px;
             border-radius: 4px;
             border: 1px solid #ddd;
-        }
-
-        /* 테이블 내 버튼 컨테이너 */
-        .action-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
+            width: 100%;
         }
     </style>
 </head>
 <body>
     <h1>강사 관리</h1>
     
-    <!-- 강사 목록 테이블 -->
-    <h2>강사 목록</h2>
-    <table id="teacherList">
-        <thead>
-            <tr>
-                <th>이름</th>
-                <th>직급</th>
-                <th>전화번호</th>
-                <th>주민번호</th>
-                <th>은행명</th>
-                <th>계좌번호</th>
-                <th>작업</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- JavaScript로 데이터가 여기에 추가됨 -->
-        </tbody>
-    </table>
-
+    <!-- 강사 추가/수정 폼을 위로 이동 -->
     <h2>강사 추가/수정</h2>
     <form id="addTeacherForm">
         <input type="hidden" name="id" id="teacherId">
@@ -153,6 +185,27 @@
         <button type="button" id="cancelBtn" style="display: none;">취소</button>
     </form>
 
+    <!-- 강사 목록 테이블을 아래로 이동 -->
+    <h2>강사 목록</h2>
+    <div class="table-container">
+        <table id="teacherList">
+            <thead>
+                <tr>
+                    <th>이름</th>
+                    <th>직급</th>
+                    <th>전화번호</th>
+                    <th>주민번호</th>
+                    <th>은행명</th>
+                    <th>계좌번호</th>
+                    <th>작업</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- JavaScript로 데이터가 여기에 추가됨 -->
+            </tbody>
+        </table>
+    </div>
+
     <script>
         let isEditing = false;
         const form = document.getElementById('addTeacherForm');
@@ -169,18 +222,18 @@
                 
                 teachers.forEach(teacher => {
                     const row = document.createElement('tr');
-row.innerHTML = `
-    <td>${teacher.이름}</td>
-    <td>${teacher.직급 || '-'}</td>
-    <td>${teacher.전화번호 || '-'}</td>
-    <td>${teacher.주민번호}</td>
-    <td>${teacher.은행명}</td>
-    <td>${teacher.계좌번호}</td>
-    <td class="action-buttons">
-        <button class="edit-btn" onclick="editTeacher(${teacher.id})">수정</button>
-        <button class="delete-btn" onclick="deleteTeacher(${teacher.id})">삭제</button>
-    </td>
-`;
+                    row.innerHTML = `
+                        <td>${teacher.이름}</td>
+                        <td>${teacher.직급 || '-'}</td>
+                        <td>${teacher.전화번호 || '-'}</td>
+                        <td>${teacher.주민번호}</td>
+                        <td>${teacher.은행명}</td>
+                        <td>${teacher.계좌번호}</td>
+                        <td class="action-buttons">
+                            <button class="edit-btn" onclick="editTeacher(${teacher.id})">수정</button>
+                            <button class="delete-btn" onclick="deleteTeacher(${teacher.id})">삭제</button>
+                        </td>
+                    `;
                     tbody.appendChild(row);
                 });
             } catch (error) {
