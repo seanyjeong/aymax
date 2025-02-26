@@ -170,24 +170,40 @@ async function downloadExcel() {
             e: { r: 0, c: 6 + i * 3 }  // 끝 셀 (첫 번째 행의 6+i*3 번째 열)
         }));
 
-        // ✅ 월별 배경색 설정
-        const monthColors = ["FFDDC1", "FFABAB", "FFC3A0", "D5AAFF", "85E3FF", "B9FBC0"];
+        // ✅ 월별 배경색 설정 - 파스텔톤으로 변경하여 시인성 개선
+        const monthColors = [
+            "FFE5E5", // 연한 분홍
+            "E5FFE5", // 연한 초록
+            "E5E5FF", // 연한 파랑
+            "FFE5FF", // 연한 보라
+            "FFFFE5", // 연한 노랑
+            "E5FFFF"  // 연한 하늘
+        ];
         for (let i = 0; i < months.length; i++) {
             const colStart = 4 + i * 3;
             const color = monthColors[i % monthColors.length];
 
-            for (let j = 0; j < 2; j++) {
-                const cell = ws[XLSX.utils.encode_cell({ r: j, c: colStart })];
-                if (cell) {
-                    cell.s = {
-                        fill: { fgColor: { rgb: color } },
-                        alignment: { horizontal: "center", vertical: "center" }
-                    };
+            // 헤더부터 마지막 행까지 색상 적용
+            for (let row = 0; row < sheetData.length; row++) {
+                for (let col = 0; col < 3; col++) {
+                    const cell = ws[XLSX.utils.encode_cell({ r: row, c: colStart + col })];
+                    if (cell) {
+                        cell.s = {
+                            fill: { fgColor: { rgb: color } },
+                            alignment: { horizontal: "center", vertical: "center" },
+                            border: {
+                                top: { style: "thin" },
+                                bottom: { style: "thin" },
+                                left: { style: "thin" },
+                                right: { style: "thin" }
+                            }
+                        };
+                    }
                 }
             }
         }
 
-        // ✅ 모든 셀 가운데 정렬
+        // ✅ 모든 셀 가운데 정렬 및 테두리 설정
         const range = XLSX.utils.decode_range(ws['!ref']);
         for (let R = 0; R <= range.e.r; R++) {
             for (let C = 0; C <= range.e.c; C++) {
@@ -195,12 +211,21 @@ async function downloadExcel() {
                 if (cell) {
                     cell.s = cell.s || {};
                     cell.s.alignment = { horizontal: "center", vertical: "center" };
+                    cell.s.border = {
+                        top: { style: "thin" },
+                        bottom: { style: "thin" },
+                        left: { style: "thin" },
+                        right: { style: "thin" }
+                    };
                 }
             }
         }
 
         XLSX.utils.book_append_sheet(wb, ws, "급여내역");
-        XLSX.writeFile(wb, `급여내역_${year}.xlsx`);
+        
+        // ✅ 현재 월을 파일명에 포함
+        const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+        XLSX.writeFile(wb, `급여내역_${year}_${currentMonth}.xlsx`);
 
     } catch (error) {
         console.error("❌ 엑셀 다운로드 중 오류 발생:", error);
